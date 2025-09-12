@@ -1,0 +1,14 @@
+#!/bin/bash
+
+echo "Setting permissions: Directories to 755, Files to 644..."
+
+# Start from the given directory (or current directory if none is provided)
+START_DIR="${1:-.}"
+
+# Set permissions for all directories to 755 (rwxr-xr-x)
+find "$START_DIR" -type d -exec chmod 755 {} \;
+
+# Set permissions for all files to 644 (rw-r--r--)
+find "$START_DIR" -type f -exec chmod 644 {} \;
+
+echo "Permissions set: Directories to 755, Files to 644."
