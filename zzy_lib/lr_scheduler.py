@@ -28,16 +28,10 @@ class LinearWarmupCosineAnnealingLR(_LRScheduler):
     def get_lr(self):
         if not self._get_lr_called_within_step:
             warnings.warn("To get the last learning rate computed by the scheduler, please use `get_last_lr()`.", UserWarning)
-
-        if self.last_epoch < self.warmup_epochs:
-            return [self.warmup_start_lr + (base_lr - self.warmup_start_lr) * self.last_epoch / self.warmup_epochs for base_lr in self.base_lrs]
-        elif self.last_epoch <= self.max_epochs:
-            return [self.eta_min + 0.5 * (base_lr - self.eta_min) * (1 + math.cos(math.pi * (self.last_epoch - self.warmup_epochs) / (self.max_epochs - self.warmup_epochs))) for base_lr in self.base_lrs]
-        else:
-            return [self.eta_min] * len(self.base_lrs)
+        return self._get_closed_form_lr()
 
     def _get_closed_form_lr(self):
-        if self.last_epoch < self.warmup_epochs:
+        if self.warmup_epochs > 0 and self.last_epoch < self.warmup_epochs:
             return [self.warmup_start_lr + (base_lr - self.warmup_start_lr) * self.last_epoch / self.warmup_epochs for base_lr in self.base_lrs]
         elif self.last_epoch <= self.max_epochs:
             return [self.eta_min + 0.5 * (base_lr - self.eta_min) * (1 + math.cos(math.pi * (self.last_epoch - self.warmup_epochs) / (self.max_epochs - self.warmup_epochs))) for base_lr in self.base_lrs]
@@ -64,14 +58,10 @@ class LinearWarmupConstantLR(_LRScheduler):
     def get_lr(self):
         if not self._get_lr_called_within_step:
             warnings.warn("To get the last learning rate computed by the scheduler, please use `get_last_lr()`.", UserWarning)
-
-        if self.last_epoch < self.warmup_epochs:
-            return [self.warmup_start_lr + (base_lr - self.warmup_start_lr) * self.last_epoch / self.warmup_epochs for base_lr in self.base_lrs]
-        else:
-            return self.base_lrs
+        return self._get_closed_form_lr()
 
     def _get_closed_form_lr(self):
-        if self.last_epoch < self.warmup_epochs:
+        if self.warmup_epochs > 0 and self.last_epoch < self.warmup_epochs:
             return [self.warmup_start_lr + (base_lr - self.warmup_start_lr) * self.last_epoch / self.warmup_epochs for base_lr in self.base_lrs]
         else:
             return self.base_lrs

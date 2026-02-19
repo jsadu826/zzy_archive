@@ -1,27 +1,43 @@
 #!/bin/bash
 
+# pip
+pip install -e /dir/of/setup.py --config-settings editable_mode=compat
+# The --config-settings editable_mode=compat flag forces pip to use simple .pth files instead of the complex editable finder mechanism,
+# which VSCode's static analysis can understand.
+
+# bash grammar
+for i in "${!param_list[@]}"; do
+	param=${param_list[$i]}
+
+# file/dir operations
 HOME=/mnt/nfs_share/zheyu/home XDG_CONFIG_HOME=/mnt/nfs_share/zheyu/home/.config XDG_CACHE_HOME=/mnt/nfs_share/zheyu/home/.cache
+find "[root_dir]" -type d -name "[name]" -exec rm -rf {} +
 
 # srun, node ip: 75, 76, 77, 81
 srun --partition=cpu --nodes=1 --ntasks=1 --cpus-per-task=32 --mem=64G
-srun --partition=gpu --nodes=1 --ntasks=1 --gres=gpu:1 --mem=100G
-srun --partition=gpu --nodes=1 --ntasks=1 --pty /bin/bash
-srun --partition=gpu --nodelist=h800node1 --ntasks=1 --gres=gpu:1 jupyter notebook --ip=172.22.215.75
-srun --partition=gpu --nodelist=h800node1 --ntasks=1 --gres=gpu:1 python main.py --listen=172.22.215.75 # ComfyUI
+srun --partition=a100 --nodes=1 --ntasks=1 --gres=gpu:1 --pty /bin/bash
+srun --partition=h800 --nodes=1 --ntasks=1 --gres=gpu:1 --mem=100G
+srun --partition=h800 --nodelist=h800node1 --ntasks=1 --gres=gpu:1 jupyter notebook --ip=172.22.215.75
+srun --partition=h800 --nodelist=h800node1 --ntasks=1 --gres=gpu:1 python main.py --listen=172.22.215.75 # ComfyUI
 
 # nnUNet
-nnUNetv2_plan_and_preprocess -d 27 --verify_dataset_integrity -pl nnUNetPlannerFixedResEncL -c 3d_fullres -np 32                   # optional: --no_pp
-nnUNetv2_train 27 3d_fullres 0 -tr nnUNetTrainer_50epochs -p nnUNetFixedResEncUNetLPlans -num_gpus 1 --npz --val_best -device cuda # optional：-pretrained_weights
+conda activate main
+nnUNetv2_plan_and_preprocess -d 27 --verify_dataset_integrity -pl nnUNetPlannerFixedResEncL -c 3d_fullres -np 32             # optional: --no_pp
+nnUNetv2_train 27 3d_fullres 0 -tr nnUNetTrainer_50epochs -p nnUNetFixedResEncUNetLPlans -num_gpus 1 --val_best -device cuda # optional：--npz, -pretrained_weights
+
+# nnunet_adaptation
+conda activate nnunet_adaptation
+nnUNetv2_plan_and_preprocess -d 901 --verify_dataset_integrity --no_pp
 
 # Mount NAS
-mkdir /data2/zheyu_data/nas_mount/public_dataset
-mkdir /data2/zheyu_data/nas_mount/zheyu
-mkdir /data2/zheyu_data/nas_mount/Radiology
-mkdir /data2/zheyu_data/nas_mount/Radiology_Liweixia
-sudo mount -t nfs 172.22.211.18:/NAS/CAPFS/data/cifs_share/IMIT/RuijinTeams/PIWenTeam/public_dataset /data2/zheyu_data/nas_mount/public_dataset
-sudo mount -t nfs 172.22.211.18:/NAS/CAPFS/data/cifs_share/IMIT/RuijinTeams/PIWenTeam/zheyu /data2/zheyu_data/nas_mount/zheyu
-sudo mount -t nfs 172.22.211.18:/NAS/CAPFS/data/cifs_share/IMIT/RuijinTeams/Physicians/Radiology /data2/zheyu_data/nas_mount/Radiology
-sudo mount -t nfs 172.22.211.18:/NAS/CAPFS/data/cifs_share/IMIT/RuijinTeams/Physicians/IndividualPhysicians/Radiology_Liweixia /data2/zheyu_data/nas_mount/Radiology_Liweixia
+mkdir -p /data2/zheyu/nas_mount/public_dataset
+mkdir -p /data2/zheyu/nas_mount/zheyu
+mkdir -p /data2/zheyu/nas_mount/Radiology
+mkdir -p /data2/zheyu/nas_mount/Radiology_Liweixia
+sudo mount -t nfs 172.22.211.18:/NAS/CAPFS/data/cifs_share/IMIT/RuijinTeams/PIWenTeam/public_dataset /data2/zheyu/nas_mount/public_dataset
+sudo mount -t nfs 172.22.211.18:/NAS/CAPFS/data/cifs_share/IMIT/RuijinTeams/PIWenTeam/zheyu /data2/zheyu/nas_mount/zheyu
+sudo mount -t nfs 172.22.211.18:/NAS/CAPFS/data/cifs_share/IMIT/RuijinTeams/Physicians/Radiology /data2/zheyu/nas_mount/Radiology
+sudo mount -t nfs 172.22.211.18:/NAS/CAPFS/data/cifs_share/IMIT/RuijinTeams/Physicians/IndividualPhysicians/Radiology_Liweixia /data2/zheyu/nas_mount/Radiology_Liweixia
 
 # huggingface
 export HF_HUB_ETAG_TIMEOUT=10000
